@@ -15,44 +15,52 @@ class Person
   xml_accessor :profile, :as => Profile
   xml_reader :exported_key
 
-  key :url,            String
+  key :url, String
   key :diaspora_handle, String, :unique => true
   key :serialized_public_key, String
 
-  key :owner_id,  ObjectId
+  key :owner_id, ObjectId
 
   one :profile, :class_name => 'Profile'
+  validate :profile_is_valid
+  def profile_is_valid
+    if profile.present? && !profile.valid?
+      profile.errors.full_messages.each { |m| errors.add(:base, m) }
+    end
+  end
+
   many :albums, :class_name => 'Album', :foreign_key => :person_id
   belongs_to :owner, :class_name => 'User'
 
   timestamps!
-
+  
   before_destroy :remove_all_traces
   before_validation :clean_url
   validates_presence_of :url, :profile, :serialized_public_key
   validates_format_of :url, :with =>
-     /^(https?):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*(\.[a-z]{2,5})?(:[0-9]{1,5})?(\/.*)?$/ix
+    /^(https?):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*(\.[a-z]{2,5})?(:[0-9]{1,5})?(\/.*)?$/ix
 
   def self.search(query)
     return Person.all if query.to_s.empty?
     query_tokens = query.to_s.strip.split(" ")
-    full_query_text = Regexp.escape( query.to_s.strip )
-    
-    p = []
-    
-    query_tokens.each do |token|
-        q = Regexp.escape( token.to_s.strip )
-        p = Person.all('profile.first_name' => /^#{q}/i) \
-                 | Person.all('profile.last_name' => /^#{q}/i) \
-                     | p
-    end
+    full_query_text = Regexp.escape(query.to_s.strip)
 
-   return p
+    p = []
+
+    query_tokens.each do |token|
+      q = Regexp.escape(token.to_s.strip)
+      p = Person.all('profile.first_name' => /^#{q}/i) \
+ | Person.all('profile.last_name' => /^#{q}/i) \
+ | p
+    end
+  
+    return p
   end
 
   def real_name
     "#{profile.first_name.to_s} #{profile.last_name.to_s}"
   end
+
   def owns?(post)
     self.id == post.person.id
   end
@@ -71,7 +79,7 @@ class Person
   end
 
   def public_key
-    OpenSSL::PKey::RSA.new( serialized_public_key )
+    OpenSSL::PKey::RSA.new(serialized_public_key)
   end
 
   def exported_key
@@ -93,7 +101,6 @@ class Person
     person = self.by_account_identifier(identifier)
    (person.nil? || person.remote?) ? nil : person
   end
-
 
   def self.build_from_webfinger(profile, hcard)
     return nil if profile.nil? || !profile.valid_diaspora_profile?
@@ -132,12 +139,13 @@ class Person
     self.url ||= "http://localhost:3000/" if self.class == User
     if self.url
       self.url = 'http://' + self.url unless self.url.match('http://' || 'https://')
-      self.url = self.url + '/' if self.url[-1,1] != '/'
+      self.url = self.url + '/' if self.url[-1, 1] != '/'
     end
   end
 
   private
   def remove_all_traces
-    Post.all(:person_id => id).each{|p| p.delete}
+    Post.all(:person_id => id).each { |p| p.delete }
   end
+
 end

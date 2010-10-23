@@ -35,7 +35,6 @@ class RequestsController < ApplicationController
     aspect = current_user.aspect_by_id(params[:request][:aspect_id])
     account = params[:request][:destination_url].strip  
     
-    EM::next_tick { 
       finger = EMWebfinger.new(account)
 
       finger.on_person{ |person|
@@ -52,7 +51,6 @@ class RequestsController < ApplicationController
           #raise e unless e.message.include? "already"
           #flash[:notice] = I18n.t 'requests.create.already_friends', :destination_url => params[:request][:destination_url]
         end
-    }
     
     finger.fetch
   }

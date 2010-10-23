@@ -4,7 +4,7 @@
 
 = javascript_include_tag 'FABridge', 'swfobject', 'web_socket'
 :javascript
-  WebSocket.__swfLocation = "/javascripts/WebSocketMain.swf";
+  WebSocket.__swfLocation = "#{javascript_path 'WebSocketMain.swf'}";
   $(document).ready(function(){
     function debug(str){ $("#debug").append("<p>" +  str); };
 
@@ -37,24 +37,26 @@
 
   });
   function processRetraction(post_id){
-    $('#' + post_id ).fadeOut(500).remove();
+    $("*[data-guid='"+post_id+"']").fadeOut(400, function(){$(this).remove()});
     if($("#stream")[0].childElementCount == 0){
       $("#no_posts").fadeIn(200);
     }
   }
 
   function processComment(post_id, html){
-    post = $('#' + post_id)[0]
+    post = $("*[data-guid='"+post_id+"']'");
     $(' .comment_set li:last', post ).before(
       $(html).fadeIn("fast", function(){})
     );
     toggler = $('.show_post_comments', post)
 
-    toggler.html(
-      toggler.html().replace(/\d+/,$('.comment_set', post)[0].childElementCount -1));
+    if(toggler.length > 0){
+      toggler.html(
+        toggler.html().replace(/\d+/,$('.comment_set', post)[0].childElementCount -1));
 
-    if( !$(".comments", post).is(':visible') ){
-      toggler.click();
+      if( !$(".comments", post).is(':visible') ){
+        toggler.click();
+      }
     }
   }
 

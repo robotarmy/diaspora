@@ -2,14 +2,6 @@
 #   licensed under the Affero General Public License version 3 or later.  See
 #   the COPYRIGHT file.
 
-# This file should contain all the record creation needed to seed the database with its default values.
-# The data can then be loaded with the rake db:seed (or created alongside the db with db:setup).
-#
-# Examples:
-#
-#   cities = City.create([{ :name => 'Chicago' }, { :name => 'Copenhagen' }])
-#   Mayor.create(:name => 'Daley', :city => citie
-
 require File.join(File.dirname(__FILE__), "..", "..", "config", "environment")
 
 def create
@@ -25,7 +17,7 @@ def create
   require File.join(File.dirname(__FILE__), "..", "..", "config", "initializers", "_load_app_config.rb")
 
   # Create seed user
-  user = User.instantiate!(:email => "#{username}@#{username}.joindiaspora.com",
+  user = User.build(:email => "#{username}@#{username}.joindiaspora.com",
                      :username => username,
                      :password => "#{username+backer_info[backer_number]['pin'].to_s}",
                      :password_confirmation => "#{username+backer_info[backer_number]['pin'].to_s}",
@@ -33,6 +25,7 @@ def create
                        :profile => Profile.new( :first_name => backer_info[backer_number]['given_name'], :last_name => backer_info[backer_number]['family_name'],
                                              :image_url => "http://#{username}.joindiaspora.com/images/user/#{username}.jpg")
                     ))
+  user.save
   user.person.save!
 
   user.aspect(:name => "Presidents")
