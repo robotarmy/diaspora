@@ -31,30 +31,32 @@ class RequestsController < ApplicationController
     @request = Request.new
   end
 
-   def create
+  def create
     aspect = current_user.aspect_by_id(params[:request][:aspect_id])
     account = params[:request][:destination_url].strip  
-    
+    begin 
       finger = EMWebfinger.new(account)
-
+    
       finger.on_person{ |person|
 
-        rel_hash = {:friend => person}
+      rel_hash = {:friend => person}
 
-        Rails.logger.debug("Sending request: #{rel_hash}")
+      Rails.logger.debug("Sending request: #{rel_hash}")
 
-        begin
-          @request = current_user.send_friend_request_to(rel_hash[:friend], aspect)
-          
-        rescue Exception => e
-          Rails.logger.debug("error: #{e.message}")
-          #raise e unless e.message.include? "already"
-          #flash[:notice] = I18n.t 'requests.create.already_friends', :destination_url => params[:request][:destination_url]
-        end
-    
-    finger.fetch
-  }
-  flash[:notice] = "we tried our best to send a message to #{account}"
-  redirect_to aspects_manage_path
+      begin
+        @request = current_user.send_friend_request_to(rel_hash[:friend], aspect)
+
+      rescue Exception => e
+        Rails.logger.debug("error: #{e.message}")
+        flash[:error] = e.message
+      end
+    }
+    rescue Exception => e 
+      flash[:error] = e.message
+    end
+
+
+    flash[:notice] = "we tried our best to send a message to #{account}" unless flash[:error]
+    redirect_to aspects_manage_path
   end
 end

@@ -23,6 +23,13 @@ class Person
 
   one :profile, :class_name => 'Profile'
   validate :profile_is_valid
+  before_save :downcase_diaspora_handle 
+  
+  
+  def downcase_diaspora_handle
+    diaspora_handle.downcase!
+  end
+
   def profile_is_valid
     if profile.present? && !profile.valid?
       profile.errors.full_messages.each { |m| errors.add(:base, m) }

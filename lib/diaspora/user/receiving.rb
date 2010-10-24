@@ -13,7 +13,6 @@ module Diaspora
             self.receive(salmon.parsed_data, salmon_author)
           end
         }
-        webfinger.fetch
       end
 
       def receive xml, salmon_author

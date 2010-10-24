@@ -6,16 +6,23 @@ class EMWebfinger
   def initialize(account)
     @account = account
     @callbacks = []
+    # Raise an error if identifier has a port number 
+    raise "Identifier is invalid" if(@account.strip.match(/\:\d+$/))
+    # Raise an error if identifier is not a valid email (generous regexp)
+    raise "Identifier is invalid" if !(@account=~ /\A.*\@.*\..*\Z/)
   end
   
   def fetch
-     raise 'you need to set a callback before calling fetch' if @callbacks.empty?
-      person = Person.by_account_identifier(@account)
-      if person
-        process_callbacks person
-      else
-        get_xrd
-      end
+    raise 'you need to set a callback before calling fetch' if @callbacks.empty?
+    query = /\A^#{Regexp.escape(@account.gsub('acct:', '').to_s)}\z/i
+    local_person = Person.first(:diaspora_handle => query)
+
+    person = Person.by_account_identifier(@account)
+    if person
+      process_callbacks person
+    else
+      get_xrd
+    end
   end
 
   def on_person(&block)
