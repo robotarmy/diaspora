@@ -37,7 +37,6 @@ describe EMWebfinger do
       end
 
       it 'should raise an error on an unresonable email' do
-        pending
         proc{EMWebfinger.new("asfadfasdf")}.should raise_error
       end
     end
@@ -90,9 +89,8 @@ describe EMWebfinger do
       end
 
       it 'should fetch a diaspora webfinger and make a person for them' do
-        FakeHttpRequest.callbacks = [diaspora_xrd, diaspora_finger, hcard_xml]
+        good_request.callbacks = [diaspora_xrd, diaspora_finger, hcard_xml]
 
-        
         #new_person = Factory.build(:person, :diaspora_handle => "tom@tom.joindiaspora.com")
                       # http://tom.joindiaspora.com/.well-known/host-meta 
         f = EMWebfinger.new("tom@tom.joindiaspora.com") 
@@ -111,37 +109,3 @@ describe EMWebfinger do
   end
 end
 
-class FakeHttpRequest
-  def initialize(callback_wanted)
-    @callback = callback_wanted
-    @@counter = 0
-  end
-
-  def self.callbacks=(rs)
-    @@callbacks = [*rs.reverse]
-    @@counter = @@callbacks.count
-  end
-
-  def response
-    @@callbacks[@@counter] if @@callbacks
-  end
-
-  def post(opts = nil); 
-    self 
-  end
-  
-  def get(opts = nil)
-    self 
-  end
-
-  def callback(&b)
-    @@counter = @@counter - 1
-    b.call if @callback == :success
-  end
-
-  def errback(&b)
-    @@counter = @@counter - 1
-    
-    b.call if @callback == :failure
-  end
-end
