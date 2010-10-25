@@ -38,22 +38,26 @@ class RequestsController < ApplicationController
       finger = EMWebfinger.new(account)
     
       finger.on_person{ |person|
+      
+      if person.class == Person
+        rel_hash = {:friend => person}
 
-      rel_hash = {:friend => person}
+        Rails.logger.debug("Sending request: #{rel_hash}")
 
-      Rails.logger.debug("Sending request: #{rel_hash}")
+        begin
+          @request = current_user.send_friend_request_to(rel_hash[:friend], aspect)
 
-      begin
-        @request = current_user.send_friend_request_to(rel_hash[:friend], aspect)
-
-      rescue Exception => e
-        Rails.logger.debug("error: #{e.message}")
+        rescue Exception => e
+          Rails.logger.debug("error: #{e.message}")
+          flash[:error] = e.message
+        end
+      else
+        #socket to tell people this failed?
+      end
+      }
+      rescue Exception => e 
         flash[:error] = e.message
       end
-    }
-    rescue Exception => e 
-      flash[:error] = e.message
-    end
 
 
     flash[:notice] = "we tried our best to send a message to #{account}" unless flash[:error]
