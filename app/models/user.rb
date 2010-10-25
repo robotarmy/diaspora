@@ -40,7 +40,7 @@ class User
 
   key :invite_messages, Hash
 
-  before_validation :strip_username, :on => :create
+  before_validation :strip_and_downcase_username, :on => :create
   validates_presence_of :username
   validates_uniqueness_of :username, :case_sensitive => false
   validates_format_of :username, :with => /\A[A-Za-z0-9_.]+\z/ 
@@ -67,9 +67,10 @@ class User
 
   before_destroy :unfriend_everyone, :remove_person
 
-  def strip_username
+  def strip_and_downcase_username
     if username.present?
       username.strip!
+      username.downcase!
     end
   end
 
