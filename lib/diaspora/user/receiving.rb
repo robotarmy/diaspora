@@ -20,6 +20,7 @@ module Diaspora
             puts e.inspect
             Rails.logger e.inspect
           end
+        end
         }
       end
 
