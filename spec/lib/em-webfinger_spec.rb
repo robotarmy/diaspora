@@ -54,7 +54,7 @@ describe EMWebfinger do
         n = EMWebfinger.new("mbs@gmail.com")
         n.stub(:fetch).and_return(true)
 
-        n.on_person{|person| puts "foo"}
+        n.on_person{|person| }
         n.instance_variable_get(:@callbacks).count.should be 1
       end
     end
