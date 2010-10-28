@@ -11,6 +11,14 @@ module Diaspora
           if salmon.verified_for_key?(salmon_author.public_key)
             Rails.logger.info("data in salmon: #{salmon.parsed_data}")
             self.receive(salmon.parsed_data, salmon_author)
+          begin
+            if salmon.verified_for_key?(salmon_author.public_key)
+              Rails.logger.info("data in salmon: #{salmon.parsed_data}")
+              self.receive(salmon.parsed_data, salmon_author)
+            end
+          rescue Exception => e 
+            puts e.inspect
+            Rails.logger e.inspect
           end
         }
       end
@@ -22,26 +30,23 @@ module Diaspora
 
         sender_in_xml = sender(object, xml)
 
-        if (salmon_author == sender_in_xml)
-          
-          if object.is_a? Request
-            receive_request object, sender_in_xml
-          elsif self.friend_ids.include? salmon_author.id
-            if object.is_a? Retraction
-              receive_retraction object, xml
-            elsif object.is_a? Profile
-              receive_profile object, xml
-            elsif object.is_a?(Comment)
-              receive_comment object, xml
-            else
-              receive_post object, xml
-            end
-          else
-            raise "Not friends with that person"
-          end
-
-        else
+        if (salmon_author != sender_in_xml)
           raise "Malicious Post, #{salmon_author.real_name} with id #{salmon_author.id} is sending a #{object.class} as #{sender_in_xml.real_name} with id #{sender_in_xml.id} "
+        end
+
+        if object.is_a? Request
+          return receive_request object, sender_in_xml
+        end
+        raise "Not friends with that person" unless self.contact_for(salmon_author)
+
+        if object.is_a? Retraction
+          receive_retraction object, xml
+        elsif object.is_a? Profile
+          receive_profile object, xml
+        elsif object.is_a?(Comment)
+          receive_comment object, xml
+        else
+          receive_post object, xml
         end
       end
 
@@ -78,6 +83,7 @@ module Diaspora
         request.person = person
         request.person.save
         old_request =  Request.first(:id => request.id)
+        Rails.logger.info("I got a reqest_id #{request.id} with old request #{old_request.inspect}")
         request.aspect_id = old_request.aspect_id if old_request
         request.save
         receive_friend_request(request)

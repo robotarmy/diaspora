@@ -11,7 +11,7 @@ module Diaspora
         raise "You have already sent a friend request to that person!" if self.pending_requests.detect{
           |x| x.destination_url == desired_friend.receive_url }
         raise "You are already friends with that person!" if self.friends.detect{
-          |x| x.receive_url == desired_friend.receive_url}
+          |x| x.person.receive_url == desired_friend.receive_url}
         request = Request.instantiate(
           :to => desired_friend.receive_url,
           :from => self.person,
@@ -29,9 +29,8 @@ module Diaspora
       end
 
       def accept_friend_request(friend_request_id, aspect_id)
-        request = Request.find_by_id(friend_request_id)
-        pending_requests.delete(request)
-
+        request = pending_requests.find!(friend_request_id)
+        pending_request_ids.delete(request.id.to_id)
         activate_friend(request.person, aspect_by_id(aspect_id))
 
         request.reverse_for(self)
@@ -45,16 +44,16 @@ module Diaspora
       end
 
       def accept_and_respond(friend_request_id, aspect_id)
-        requester = Request.find_by_id(friend_request_id).person
+        requester = pending_requests.find!(friend_request_id).person
         reversed_request = accept_friend_request(friend_request_id, aspect_id)
         dispatch_friend_acceptance reversed_request, requester
       end
 
       def ignore_friend_request(friend_request_id)
-        request = Request.find_by_id(friend_request_id)
+        request = pending_requests.find!(friend_request_id)
         person  = request.person
 
-        self.pending_requests.delete(request)
+        self.pending_request_ids.delete(request.id)
         self.save
 
         person.save
@@ -91,13 +90,15 @@ module Diaspora
       end
 
       def remove_friend(bad_friend)
-        raise "Friend not deleted" unless self.friend_ids.delete( bad_friend.id )
-        aspects.each{|aspect|
-          if aspect.person_ids.delete( bad_friend.id )
-            aspect.posts.delete_if { |post| 
-              post.person_id == bad_friend.id}
-          end}
-        self.save
+        contact = contact_for(bad_friend)
+        raise "Friend not deleted" unless self.friend_ids.delete(contact.id)
+        contact.aspects.each{|aspect|
+          contact.aspects.delete(aspect)
+          aspect.posts.delete_if { |post| 
+            post.person_id == bad_friend.id
+          }
+          aspect.save
+        }
 
         self.raw_visible_posts.find_all_by_person_id( bad_friend.id ).each{|post|
           self.visible_post_ids.delete( post.id )
@@ -105,7 +106,7 @@ module Diaspora
           (post.user_refs > 0 || post.person.owner.nil? == false) ?  post.save : post.destroy
         }
         self.save
-
+        contact.destroy
         bad_friend.save
       end
 
@@ -115,10 +116,15 @@ module Diaspora
       end
 
       def activate_friend(person, aspect)
-        aspect.people << person
-        friends << person
+        new_contact = Contact.create(:user => self, :person => person, :aspects => [aspect])
+        new_contact.aspects << aspect
+        friends << new_contact
         save
         aspect.save
+      end
+
+      def contact_for(person)
+        friends.first(:person_id => person.id)
       end
 
       def request_from_me?(request)
