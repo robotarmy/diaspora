@@ -41,6 +41,8 @@ class User
   key :invite_messages, Hash
 
   before_validation :strip_and_downcase_username, :on => :create
+  key :getting_started, Boolean, :default => true
+
   validates_presence_of :username
   validates_uniqueness_of :username, :case_sensitive => false
   validates_format_of :username, :with => /\A[A-Za-z0-9_.]+\z/ 
@@ -86,10 +88,6 @@ class User
 
   def method_missing(method, *args)
     self.person.send(method, *args)
-  end
-
-  def real_name
-    "#{person.profile.first_name.to_s} #{person.profile.last_name.to_s}"
   end
 
   ######### Aspects ######################
@@ -276,7 +274,7 @@ class User
 
   def build_comment(text, options = {})
     raise "must comment on something!" unless options[:on]
-    comment = Comment.new(:person_id => self.person.id, :text => text, :post => options[:on])
+    comment = Comment.new(:person_id => self.person.id, :diaspora_handle => self.person.diaspora_handle, :text => text, :post => options[:on])
     comment.creator_signature = comment.sign_with_key(encryption_key)
     if comment.save
       comment
@@ -410,11 +408,14 @@ class User
 
   ###Helpers############
   def self.build(opts = {})
+    opts[:person] ||= {}
+    opts[:person][:profile] ||= Profile.new
     opts[:person][:diaspora_handle] = "#{opts[:username]}@#{APP_CONFIG[:terse_pod_url]}"
     opts[:person][:url] = APP_CONFIG[:pod_url]
 
     opts[:serialized_private_key] = generate_key
     opts[:person][:serialized_public_key] = opts[:serialized_private_key].public_key
+
 
     u = User.new(opts)
     u
