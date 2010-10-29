@@ -111,7 +111,7 @@ class PhotosController < ApplicationController
       respond_with @photo
     else
       flash[:error] = I18n.t 'photos.update.error'
-      render :action => :edit
+      redirect_to [:edit, @photo]
     end
   end
 end
