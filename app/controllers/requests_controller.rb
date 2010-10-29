@@ -63,7 +63,7 @@ class RequestsController < ApplicationController
       redirect_to getting_started_path(:step=>params[:getting_started])
     else
       flash[:notice] = "we tried our best to send a message to #{account}" unless flash[:error]
-      respond_with :location => aspect
+      respond_with :location => aspects_manage_path 
       return
     end    
   end
